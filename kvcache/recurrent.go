@@ -750,3 +750,5 @@ func (c *Recurrent) IsSupportedForBatch() bool {
 func (c *Recurrent) Seqs() []int {
 	return slices.Clone(c.curSeqs)
 }
+
+func (c *Recurrent) TurboQuantPostProcess() {}

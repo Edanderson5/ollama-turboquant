@@ -154,3 +154,5 @@ func (c *EncoderCache) Remove(seq int, beginIndex, endIndex int32) error {
 
 	return nil
 }
+
+func (c *EncoderCache) TurboQuantPostProcess() {}

@@ -75,6 +75,10 @@ type Causal struct {
 	backend      ml.Backend
 	ctxs         map[int]ml.Context
 	keys, values map[int]ml.Tensor
+
+	// TurboQuant state
+	tqState   *TurboQuantState
+	curLocs   []int32  // cell indices written in current forward pass
 }
 
 type cacheCell struct {
@@ -189,6 +193,25 @@ func (c *Causal) SetConfig(config ml.CacheConfig) {
 	c.config = &config
 }
 
+// SetTurboQuant enables TQ compression on this cache.
+func (c *Causal) SetTurboQuant(tq *TurboQuantState) {
+	c.tqState = tq
+}
+
+// TurboQuantPostProcess applies quantize+dequant to newly written KV rows.
+// Must be called after the GGML compute graph has executed.
+func (c *Causal) TurboQuantPostProcess() {
+	if c.tqState == nil || !c.tqState.Enabled() || len(c.curLocs) == 0 {
+		return
+	}
+	for _, tensor := range c.keys {
+		c.tqState.PostProcessKVTensor(tensor, c.curLocs)
+	}
+	for _, tensor := range c.values {
+		c.tqState.PostProcessKVTensor(tensor, c.curLocs)
+	}
+}
+
 func (c *Causal) Close() {
 	for _, ctx := range c.ctxs {
 		ctx.Close()
@@ -241,6 +264,7 @@ func (c *Causal) StartForward(ctx ml.Context, batch input.Batch, reserve bool) e
 		c.curCellRange.max = len(c.cells) - 1
 	}
 
+	c.curLocs = locs  // Save for TQ post-processing
 	c.curLoc = ctx.Input().FromInts(locs, len(locs))
 	c.curMask = c.buildMask(ctx)
 

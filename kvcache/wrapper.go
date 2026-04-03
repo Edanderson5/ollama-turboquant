@@ -108,3 +108,5 @@ func (c *WrapperCache) Remove(seq int, beginIndex, endIndex int32) error {
 
 	return nil
 }
+
+func (c *WrapperCache) TurboQuantPostProcess() {}

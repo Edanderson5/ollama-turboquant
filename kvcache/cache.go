@@ -43,6 +43,9 @@ type Cache interface {
 
 	// ** cache management **
 
+	// TurboQuantPostProcess applies post-compute KV compression (no-op if TQ not enabled)
+	TurboQuantPostProcess()
+
 	// Init sets up runtime parameters.
 	// backend: Used to allocate cache data storage and execute management operations (such as defrag)
 	// dtype: The data type for storing cache entries

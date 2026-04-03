@@ -64,9 +64,17 @@ func kvCacheTypeFromStr(s string) ml.DType {
 		return ml.DTypeQ80
 	case "q4_0":
 		return ml.DTypeQ40
+	case "tq3_0":
+		// TQ3 uses F16 storage with post-process quantize+dequant
+		return ml.DTypeF16
 	default:
 		return ml.DTypeF16
 	}
+}
+
+// IsTurboQuant returns true if the KV cache type is tq3_0.
+func IsTurboQuant(kvCacheType string) bool {
+	return kvCacheType == "tq3_0"
 }
 
 func (c *InputCache) Close() {

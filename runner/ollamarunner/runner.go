@@ -34,6 +34,7 @@ import (
 	"github.com/ollama/ollama/ml"
 	"github.com/ollama/ollama/ml/nn/pooling"
 	"github.com/ollama/ollama/model"
+	"github.com/ollama/ollama/kvcache"
 	"github.com/ollama/ollama/model/input"
 	"github.com/ollama/ollama/runner/common"
 	"github.com/ollama/ollama/sample"
@@ -379,6 +380,9 @@ type Server struct {
 	// KV cache
 	cache *InputCache
 
+	// TurboQuant KV cache type
+	kvCacheType string
+
 	// next sequence for prompt processing to avoid starvation
 	nextSeq int
 
@@ -719,6 +723,12 @@ func (s *Server) computeBatch(activeBatch batchState) {
 			activeBatch.computeStartedCh <- struct{}{}
 		},
 		activeBatch.modelOutput)
+
+	// TurboQuant: apply quantize+dequant to newly written KV rows
+	// Only process every 8th batch to amortize GPU transfer cost
+	if s.cache != nil && s.cache.cache != nil && activeBatch.id%8 == 0 {
+		s.cache.cache.TurboQuantPostProcess()
+	}
 
 	outputs := activeBatch.modelOutput.Floats()
 	t := time.Now()
@@ -1223,6 +1233,26 @@ func (s *Server) allocModel(
 	s.cache, err = NewInputCache(s.model, kvCacheType, int32(kvSize), parallel, s.batchSize, multiUserCache)
 	if err != nil {
 		return err
+	}
+	s.kvCacheType = kvCacheType
+
+	// TurboQuant: init if KV type is tq3_0
+	if IsTurboQuant(kvCacheType) && s.cache.cache != nil {
+		if causal, ok := s.cache.cache.(*kvcache.Causal); ok {
+			c := s.model.Backend().Config()
+			embeddingLen := int(c.Uint("embedding_length", 0))
+			numHeads := int(c.Uint("attention.head_count", 0))
+			numKVHeads := int(c.Uint("attention.head_count_kv", 0))
+			nLayers := int(c.Uint("block_count", 0))
+			headDim := 0
+			if numHeads > 0 {
+				headDim = embeddingLen / numHeads
+			}
+			if headDim > 0 && numKVHeads > 0 {
+				tqState := kvcache.NewTurboQuantState(headDim, numKVHeads, nLayers)
+				causal.SetTurboQuant(tqState)
+			}
+		}
 	}
 
 	s.parallel = parallel
