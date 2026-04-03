@@ -5,12 +5,15 @@
 #include "llama-batch.h"
 #include "llama-io.h"
 #include "llama-memory.h"
+#include "llama-kv-cache.h"
 #include "llama-mmap.h"
 #include "llama-model.h"
 
 #include <cinttypes>
 #include <cmath>
 #include <cstring>
+#include <cstdlib>
+#include <string>
 #include <limits>
 #include <stdexcept>
 
@@ -250,6 +253,15 @@ llama_context::llama_context(
         };
 
         memory.reset(model.create_memory(params_mem, cparams));
+
+        // TurboQuant: auto-init when KV type is TQ3_0
+        if (getenv("OLLAMA_KV_CACHE_TYPE") && std::string(getenv("OLLAMA_KV_CACHE_TYPE")) == "tq3_0") {
+            auto * kv = dynamic_cast<llama_kv_cache *>(memory.get());
+            if (kv) {
+                const char * path = params.turboquant_meta_path ? params.turboquant_meta_path : "";
+                kv->init_turboquant(path, cparams.n_ctx_seq);
+            }
+        }
     }
 
     // init backends
@@ -2384,6 +2396,7 @@ llama_context_params llama_context_default_params() {
         /*.cb_eval_user_data           =*/ nullptr,
         /*.type_k                      =*/ GGML_TYPE_F16,
         /*.type_v                      =*/ GGML_TYPE_F16,
+        /*.turboquant_meta_path        =*/ nullptr,
         /*.abort_callback              =*/ nullptr,
         /*.abort_callback_data         =*/ nullptr,
         /*.embeddings                  =*/ false,

@@ -899,12 +899,25 @@ static const struct ggml_type_traits type_traits[GGML_TYPE_COUNT] = {
         .type_size                = 0,
         .is_quantized             = false,
     },
+    [GGML_TYPE_TQ3_0] = {
+        .type_name = "tq3_0",
+        .blck_size = 128,
+        .blck_size_interleave = 0,
+        .type_size = 56,
+        .is_quantized = true,
+        .to_float = NULL,
+        .from_float_ref = NULL,
+    },
 };
 
 const struct ggml_type_traits * ggml_get_type_traits(enum ggml_type type) {
     GGML_ASSERT(type < GGML_TYPE_COUNT);
     return &type_traits[type];
 }
+
+void ggml_set_type_traits_funcs(enum ggml_type type, ggml_to_float_t to_float, ggml_from_float_t from_float) { /* disabled: const type_traits */ }
+
+void ggml_set_type_traits_size(enum ggml_type type, int64_t blck_size, size_t type_size) { /* disabled: const type_traits */ }
 
 //
 // ggml object

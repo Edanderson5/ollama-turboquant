@@ -153,6 +153,9 @@ func kvCacheTypeFromStr(s string) C.enum_ggml_type {
 		return C.GGML_TYPE_Q8_0
 	case "q4_0":
 		return C.GGML_TYPE_Q4_0
+	case "tq3_0":
+		// TQ3 compression via shadow buffer, KV stays F16
+		return C.GGML_TYPE_F16
 	default:
 		return C.GGML_TYPE_F16
 	}

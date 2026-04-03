@@ -4,6 +4,7 @@
 #include "llama-graph.h"
 #include "llama-kv-cells.h"
 #include "llama-memory.h"
+#include "llama-turboquant.h"
 
 #include <unordered_map>
 #include <vector>
@@ -182,6 +183,10 @@ public:
     slot_info find_slot(const llama_ubatch & ubatch, bool cont) const;
 
     // emplace the ubatch context into slot: [sinfo.idxs[0...ubatch.n_tokens - 1]]
+    // TurboQuant
+    void init_turboquant(const std::string & tqmeta_path, uint32_t kv_size);
+    bool is_turboquant() const;
+
     void apply_ubatch(const slot_info & sinfo, const llama_ubatch & ubatch);
 
     //
@@ -248,6 +253,9 @@ private:
     stream_copy_info sc_info;
 
     std::vector<kv_layer> layers;
+
+    // TurboQuant state
+    std::unique_ptr<turboquant::state> tq_state;
 
     // model layer id -> KV cache layer id
     std::unordered_map<int32_t, int32_t> map_layer_ids;

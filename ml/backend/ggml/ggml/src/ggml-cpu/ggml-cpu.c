@@ -392,6 +392,10 @@ const struct ggml_type_traits_cpu * ggml_get_type_traits_cpu(enum ggml_type type
     return &type_traits_cpu[type];
 }
 
+void ggml_set_type_traits_cpu_from_float(enum ggml_type type, ggml_from_float_t from_float) { /* disabled: const type_traits */ }
+
+void ggml_set_type_traits_cpu_vec_dot(enum ggml_type type, ggml_vec_dot_t vec_dot, enum ggml_type vec_dot_type) { /* disabled: const type_traits */ }
+
 //
 // Threading defs
 //

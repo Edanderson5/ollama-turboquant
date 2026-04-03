@@ -422,7 +422,8 @@ extern "C" {
         // GGML_TYPE_IQ4_NL_4_8 = 37,
         // GGML_TYPE_IQ4_NL_8_8 = 38,
         GGML_TYPE_MXFP4   = 39, // MXFP4 (1 block)
-        GGML_TYPE_COUNT   = 40,
+        GGML_TYPE_TQ3_0   = 40, // TurboQuant 3-bit KV cache
+        GGML_TYPE_COUNT   = 41,
     };
 
     // precision
@@ -2681,6 +2682,8 @@ extern "C" {
     };
 
     GGML_API const struct ggml_type_traits * ggml_get_type_traits(enum ggml_type type);
+    GGML_API void ggml_set_type_traits_funcs(enum ggml_type type, ggml_to_float_t to_float, ggml_from_float_t from_float);
+    GGML_API void ggml_set_type_traits_size(enum ggml_type type, int64_t blck_size, size_t type_size);
 
     // ggml threadpool
     // TODO: currently, only a few functions are in the base ggml API, while the rest are in the CPU backend

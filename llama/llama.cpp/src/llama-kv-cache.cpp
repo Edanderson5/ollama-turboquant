@@ -2098,3 +2098,22 @@ void llama_kv_cache_context::set_input_kq_mask(ggml_tensor * dst, const llama_ub
 void llama_kv_cache_context::set_input_pos_bucket(ggml_tensor * dst, const llama_ubatch * ubatch) const {
     kv->set_input_pos_bucket(dst, ubatch);
 }
+
+void llama_kv_cache::init_turboquant(const std::string & tqmeta_path, uint32_t kv_size) {
+    if (layers.empty()) return;
+    int head_dim = hparams.n_embd_head_k;
+    int n_kv_heads = hparams.n_head_kv(layers[0].il);
+    if (head_dim == 0 || n_kv_heads == 0) return;
+    try {
+        tq_state = turboquant::init(tqmeta_path, kv_size, (int)layers.size(), n_kv_heads, head_dim);
+        if (tq_state && tq_state->enabled) {
+            turboquant::register_ggml_type(*tq_state);
+        }
+    } catch (const std::exception & e) {
+        fprintf(stderr, "turboquant init failed: %s\n", e.what());
+    }
+}
+
+bool llama_kv_cache::is_turboquant() const {
+    return tq_state && tq_state->enabled;
+}
